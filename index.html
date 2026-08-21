@@ -637,6 +637,8 @@ footer p{font-size:12px; color:var(--ink-soft); letter-spacing:0.04em;}
     <h2><span class="pt">Garante a tua vaga</span><span class="en">Reserve your spot</span></h2>
     <p class="section-sub"><span class="pt">Preenche o formulário e entraremos em contacto para confirmar disponibilidade.</span><span class="en">Fill in the form and we'll reach out to confirm availability.</span></p>
     <form id="signup-form">
+      <input type="hidden" name="_subject" value="LOTUS - Nova inscrição">
+      <input type="hidden" name="_replyto" value="">
       <div class="field" id="f-name">
         <label><span class="pt">Nome</span><span class="en">Name</span></label>
         <input type="text" name="name" placeholder="Maria Silva">
@@ -661,7 +663,8 @@ footer p{font-size:12px; color:var(--ink-soft); letter-spacing:0.04em;}
         <p class="err"><span class="pt">Escolhe um formato</span><span class="en">Choose a format</span></p>
       </div>
       <button type="submit" class="submit-btn"><span class="pt">Enviar inscrição</span><span class="en">Submit application</span></button>
-      <p class="form-note"><span class="pt">Ao submeter, abrirá o teu cliente de email para confirmares o envio.</span><span class="en">On submit, your email client will open so you can confirm sending.</span></p>
+      <p class="form-note"><span class="pt">Depois de enviares, entraremos em contacto contigo.</span><span class="en">After submitting, we'll be in touch with you.</span></p>
+      <p id="form-status" style="text-align:center; margin-top:14px; font-size:14px; display:none;"></p>
     </form>
   </div>
 </section>
@@ -700,10 +703,11 @@ window.addEventListener('scroll', function(){
 document.getElementById('signup-form').addEventListener('submit', function(e){
   e.preventDefault();
   var isEn = document.body.classList.contains('lang-en');
-  var name = this.querySelector('[name="name"]').value.trim();
-  var email = this.querySelector('[name="email"]').value.trim();
-  var whatsapp = this.querySelector('[name="whatsapp"]').value.trim();
-  var format = this.querySelector('[name="format"]').value;
+  var form = this;
+  var name = form.querySelector('[name="name"]').value.trim();
+  var email = form.querySelector('[name="email"]').value.trim();
+  var whatsapp = form.querySelector('[name="whatsapp"]').value.trim();
+  var format = form.querySelector('[name="format"]').value;
   var emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 
   var nameField = document.getElementById('f-name');
@@ -713,15 +717,45 @@ document.getElementById('signup-form').addEventListener('submit', function(e){
   emailField.classList.toggle('invalid', !emailValid);
   formatField.classList.toggle('invalid', format.length === 0);
 
+  var statusEl = document.getElementById('form-status');
+
   if(name.length === 0 || !emailValid || format.length === 0) return;
 
-  var subject = isEn ? 'LOTUS - Application' : 'LOTUS - Inscrição';
-  var body = (isEn ? 'Name: ' : 'Nome: ') + name + '\n' +
-             'Email: ' + email + '\n' +
-             'WhatsApp: ' + whatsapp + '\n' +
-             (isEn ? 'Format: ' : 'Formato: ') + format;
-  window.location.href = 'mailto:inesferreira.neuropsi@gmail.com?subject=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(body);
+  form.querySelector('[name="_replyto"]').value = email;
+
+  var submitBtn = form.querySelector('.submit-btn');
+  submitBtn.disabled = true;
+  statusEl.style.display = 'block';
+  statusEl.style.color = 'var(--ink-soft)';
+  statusEl.textContent = isEn ? 'Sending…' : 'A enviar…';
+
+  fetch('https://formspree.io/f/xeajdewp', {
+    method: 'POST',
+    headers: { 'Accept': 'application/json' },
+    body: new FormData(form)
+  }).then(function(response){
+    submitBtn.disabled = false;
+    if(response.ok){
+      form.reset();
+      statusEl.style.color = 'var(--gold-deep)';
+      statusEl.textContent = isEn
+        ? 'Thank you! Your application has been received.'
+        : 'Obrigada! A tua inscrição foi recebida.';
+    } else {
+      statusEl.style.color = '#B23B3B';
+      statusEl.textContent = isEn
+        ? 'Something went wrong. Please email us directly at inesferreira.neuropsi@gmail.com.'
+        : 'Ocorreu um erro. Por favor envia um email diretamente para inesferreira.neuropsi@gmail.com.';
+    }
+  }).catch(function(){
+    submitBtn.disabled = false;
+    statusEl.style.color = '#B23B3B';
+    statusEl.textContent = isEn
+      ? 'Something went wrong. Please email us directly at inesferreira.neuropsi@gmail.com.'
+      : 'Ocorreu um erro. Por favor envia um email diretamente para inesferreira.neuropsi@gmail.com.';
+  });
 });
+
 </script>
 
 </body>
